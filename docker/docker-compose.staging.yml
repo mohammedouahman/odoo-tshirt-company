@@ -27,7 +27,7 @@ services:
 
   odoo:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile.odoo
     container_name: odoo_app_staging
     restart: unless-stopped

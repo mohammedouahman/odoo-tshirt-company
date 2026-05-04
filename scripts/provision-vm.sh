@@ -137,7 +137,7 @@ fi
 
 # --- Start the stack ---
 COMPOSE_FILE="docker/docker-compose.${ENV}.yml"
-docker compose -f \$COMPOSE_FILE --env-file .env up -d --build
+docker compose -f \$COMPOSE_FILE --project-directory . --env-file .env up -d --build
 
 # --- Setup daily backup cron (production only) ---
 if [ "$ENV" = "production" ]; then
