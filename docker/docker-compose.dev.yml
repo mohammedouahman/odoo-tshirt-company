@@ -1,0 +1,78 @@
+# =============================================================================
+# Odoo 18 — DEVELOPMENT
+# =============================================================================
+# Loose security, dev mode enabled, mail catcher, hot reload of addons.
+# Edit code locally → see changes immediately on this server.
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: odoo_db_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # Exposed in dev for direct DB access from local pgAdmin
+    networks:
+      - odoo_internal
+
+  odoo:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.odoo
+    container_name: odoo_app_dev
+    restart: unless-stopped
+    depends_on:
+      - db
+      - mailhog
+    environment:
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - odoo_data_dev:/var/lib/odoo
+      - ./config/odoo/odoo.dev.conf:/etc/odoo/odoo.conf:ro
+      - ./custom_addons:/mnt/custom-addons   # writable for hot reload
+      - ./logs/odoo:/var/log/odoo
+    ports:
+      - "8069:8069"   # Direct access for dev
+      - "8072:8072"
+    networks:
+      - odoo_internal
+    command: odoo -c /etc/odoo/odoo.conf --dev=reload,qweb,xml
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: odoo_mailhog_dev
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # MailHog UI directly on dev
+      - "1025:1025"
+    networks:
+      - odoo_internal
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: odoo_pgadmin_dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    networks:
+      - odoo_internal
+
+volumes:
+  postgres_data_dev:
+  odoo_data_dev:
+
+networks:
+  odoo_internal:
+    driver: bridge

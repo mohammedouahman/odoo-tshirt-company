@@ -1,0 +1,5 @@
+# Extra Python packages for custom T-shirt module
+# Add any 3rd-party libs your custom code needs here
+phonenumbers
+qrcode
+Pillow

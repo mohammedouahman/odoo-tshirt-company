@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_crm_lead_form_branding" model="ir.ui.view">
+        <field name="name">crm.lead.form.tshirt</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='priority']" position="after">
+                <field name="tshirt_priority_label" widget="badge"
+                       decoration-danger="tshirt_priority_label == 'hot'"
+                       decoration-warning="tshirt_priority_label == 'warm'"
+                       decoration-info="tshirt_priority_label == 'cool'"/>
+                <field name="tshirt_priority_score"/>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="T-Shirt Brief" name="tshirt_brief">
+                    <group>
+                        <group>
+                            <field name="estimated_quantity"/>
+                            <field name="needs_branding"/>
+                            <field name="desired_delivery_days"/>
+                        </group>
+                        <group>
+                            <field name="company_size_band"/>
+                            <field name="tshirt_priority_score" readonly="1"/>
+                            <field name="tshirt_priority_label" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- Pipeline Kanban — sort by priority score -->
+    <record id="view_crm_lead_kanban_tshirt" model="ir.ui.view">
+        <field name="name">crm.lead.kanban.tshirt</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_case_kanban_view_leads"/>
+        <field name="arch" type="xml">
+            <field name="priority" position="after">
+                <field name="tshirt_priority_label"/>
+                <field name="tshirt_priority_score"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

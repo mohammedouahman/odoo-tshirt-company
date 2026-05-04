@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Sequence for production order references -->
+        <record id="seq_tshirt_production" model="ir.sequence">
+            <field name="name">T-Shirt Production Order</field>
+            <field name="code">tshirt.production</field>
+            <field name="prefix">TSP/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+        <!-- Default stages: Art Work → Proofing → Frame → Printing → QC → Done -->
+        <record id="stage_artwork" model="tshirt.production.stage">
+            <field name="name">1. Art Work</field>
+            <field name="sequence">10</field>
+            <field name="color">3</field>
+            <field name="sla_hours">48</field>
+            <field name="description">Designer creates / refines the artwork file.</field>
+        </record>
+
+        <record id="stage_proofing" model="tshirt.production.stage">
+            <field name="name">2. Proofing</field>
+            <field name="sequence">20</field>
+            <field name="color">4</field>
+            <field name="sla_hours">24</field>
+            <field name="description">Customer reviews and approves the design.</field>
+        </record>
+
+        <record id="stage_frame" model="tshirt.production.stage">
+            <field name="name">3. Frame Making</field>
+            <field name="sequence">30</field>
+            <field name="color">2</field>
+            <field name="sla_hours">48</field>
+            <field name="description">New screen-printing frame manufactured (only if needed).</field>
+        </record>
+
+        <record id="stage_printing" model="tshirt.production.stage">
+            <field name="name">4. Printing</field>
+            <field name="sequence">40</field>
+            <field name="color">5</field>
+            <field name="sla_hours">24</field>
+            <field name="description">Shirts printed on the shop floor.</field>
+        </record>
+
+        <record id="stage_qc" model="tshirt.production.stage">
+            <field name="name">5. Quality Check</field>
+            <field name="sequence">50</field>
+            <field name="color">6</field>
+            <field name="sla_hours">12</field>
+            <field name="description">Final inspection before packaging.</field>
+        </record>
+
+        <record id="stage_done" model="tshirt.production.stage">
+            <field name="name">6. Ready to Ship</field>
+            <field name="sequence">60</field>
+            <field name="color">10</field>
+            <field name="is_done">True</field>
+            <field name="fold">True</field>
+            <field name="description">Order complete and ready for delivery.</field>
+        </record>
+
+    </data>
+</odoo>

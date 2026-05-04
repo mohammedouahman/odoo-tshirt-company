@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================ -->
+    <!-- KANBAN: the shop-floor visibility board                      -->
+    <!-- ============================================================ -->
+    <record id="view_tshirt_production_kanban" model="ir.ui.view">
+        <field name="name">tshirt.production.kanban</field>
+        <field name="model">tshirt.production.order</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id" class="o_kanban_small_column"
+                    sample="1" quick_create="false">
+                <field name="reference"/>
+                <field name="partner_id"/>
+                <field name="quantity"/>
+                <field name="deadline"/>
+                <field name="priority"/>
+                <field name="color"/>
+                <field name="is_late"/>
+                <field name="stage_age_hours"/>
+                <field name="total_hours"/>
+                <field name="logo_file"/>
+                <field name="requires_new_frame"/>
+                <progressbar field="priority" colors='{"2": "danger", "1": "warning"}'/>
+
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_card oe_kanban_global_click #{record.is_late.raw_value ? 'oe_kanban_color_1' : ''}">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="reference"/>
+                                    </strong>
+                                    <small class="o_kanban_record_subtitle text-muted">
+                                        <field name="partner_id"/>
+                                    </small>
+                                </div>
+                                <field name="priority" widget="priority"/>
+                            </div>
+
+                            <div class="o_kanban_record_body">
+                                <div t-if="record.logo_file.raw_value" class="mb-2">
+                                    <img t-att-src="kanban_image('tshirt.production.order', 'logo_file', record.id.raw_value)"
+                                         alt="logo" style="max-height: 60px; max-width: 100%;"/>
+                                </div>
+                                <div>
+                                    <span class="badge text-bg-info">
+                                        <i class="fa fa-cubes"/> <field name="quantity"/> pcs
+                                    </span>
+                                    <span t-if="record.requires_new_frame.raw_value" class="badge text-bg-warning ms-1">
+                                        New Frame
+                                    </span>
+                                    <span t-if="record.is_late.raw_value" class="badge text-bg-danger ms-1">
+                                        ⚠ Late
+                                    </span>
+                                </div>
+                                <div t-if="record.deadline.raw_value" class="mt-2 text-muted">
+                                    <i class="fa fa-calendar"/> Due: <field name="deadline"/>
+                                </div>
+                            </div>
+
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left">
+                                    <small><i class="fa fa-clock-o"/> <field name="total_hours" widget="float_time"/> h</small>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <field name="activity_ids" widget="kanban_activity"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- LIST                                                         -->
+    <!-- ============================================================ -->
+    <record id="view_tshirt_production_list" model="ir.ui.view">
+        <field name="name">tshirt.production.list</field>
+        <field name="model">tshirt.production.order</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="is_late" decoration-success="is_done">
+                <field name="reference"/>
+                <field name="partner_id"/>
+                <field name="sale_order_id"/>
+                <field name="stage_id"/>
+                <field name="quantity"/>
+                <field name="deadline"/>
+                <field name="priority" widget="priority"/>
+                <field name="total_hours" widget="float_time"/>
+                <field name="is_late" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- FORM                                                         -->
+    <!-- ============================================================ -->
+    <record id="view_tshirt_production_form" model="ir.ui.view">
+        <field name="name">tshirt.production.form</field>
+        <field name="model">tshirt.production.order</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="stage_id" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_sale_order" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart">
+                            <span>Sales Order</span>
+                        </button>
+                        <button name="action_log_time" type="object"
+                                class="oe_stat_button" icon="fa-clock-o">
+                            <field name="total_hours" widget="float_time"/>
+                            <span>Hours</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="reference" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="sale_order_id"/>
+                            <field name="partner_id"/>
+                            <field name="quantity"/>
+                            <field name="deadline"/>
+                            <field name="priority" widget="priority"/>
+                        </group>
+                        <group>
+                            <field name="started_at"/>
+                            <field name="completed_at"/>
+                            <field name="requires_new_frame"/>
+                            <field name="is_late"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Branding Details">
+                            <group>
+                                <field name="logo_file" filename="logo_filename" widget="image"/>
+                                <field name="logo_filename" invisible="1"/>
+                                <field name="placement_notes" placeholder="e.g. Front center, 12cm wide..."/>
+                                <field name="color_specs" placeholder="e.g. PMS 186 C red, PMS White..."/>
+                            </group>
+                        </page>
+                        <page string="Time Entries">
+                            <field name="timesheet_ids">
+                                <list editable="bottom">
+                                    <field name="date"/>
+                                    <field name="employee_id"/>
+                                    <field name="name"/>
+                                    <field name="unit_amount" widget="float_time"/>
+                                    <field name="tshirt_stage_id" readonly="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- SEARCH                                                       -->
+    <!-- ============================================================ -->
+    <record id="view_tshirt_production_search" model="ir.ui.view">
+        <field name="name">tshirt.production.search</field>
+        <field name="model">tshirt.production.order</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="reference"/>
+                <field name="partner_id"/>
+                <field name="sale_order_id"/>
+                <separator/>
+                <filter name="my_late" string="Late Orders" domain="[('is_late', '=', True)]"/>
+                <filter name="active" string="In Progress" domain="[('is_done', '=', False)]"/>
+                <filter name="urgent" string="Urgent" domain="[('priority', '=', '2')]"/>
+                <filter name="needs_frame" string="New Frame Required" domain="[('requires_new_frame', '=', True)]"/>
+                <group string="Group By">
+                    <filter name="group_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
+                    <filter name="group_partner" string="Customer" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_priority" string="Priority" context="{'group_by': 'priority'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- ACTION                                                       -->
+    <!-- ============================================================ -->
+    <record id="action_tshirt_production" model="ir.actions.act_window">
+        <field name="name">Production Orders</field>
+        <field name="res_model">tshirt.production.order</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No production orders yet
+            </p>
+            <p>
+                Production orders are created automatically when a Sales Order
+                with branding details is confirmed.
+            </p>
+        </field>
+    </record>
+
+    <!-- Stage management -->
+    <record id="view_tshirt_stage_list" model="ir.ui.view">
+        <field name="name">tshirt.stage.list</field>
+        <field name="model">tshirt.production.stage</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="sla_hours"/>
+                <field name="is_done"/>
+                <field name="fold"/>
+                <field name="color" widget="color_picker"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_tshirt_stage" model="ir.actions.act_window">
+        <field name="name">Production Stages</field>
+        <field name="res_model">tshirt.production.stage</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

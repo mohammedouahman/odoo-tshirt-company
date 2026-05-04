@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_tshirt_stage_user,tshirt.stage user,model_tshirt_production_stage,base.group_user,1,0,0,0
+access_tshirt_stage_manager,tshirt.stage manager,model_tshirt_production_stage,tshirt_branding.group_tshirt_manager,1,1,1,1
+access_tshirt_production_user,tshirt.production user,model_tshirt_production_order,base.group_user,1,1,1,0
+access_tshirt_production_manager,tshirt.production manager,model_tshirt_production_order,tshirt_branding.group_tshirt_manager,1,1,1,1

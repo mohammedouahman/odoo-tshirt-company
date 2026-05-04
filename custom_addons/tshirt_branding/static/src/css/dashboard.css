@@ -1,0 +1,20 @@
+/* T-Shirt Branding — custom dashboard styles */
+
+.o_kanban_view.o_tshirt_production .o_kanban_record {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.o_kanban_view.o_tshirt_production .o_kanban_record:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.o_kanban_view.o_tshirt_production .o_kanban_color_1 {
+    border-left-color: #dc3545;
+}
+
+.o_kanban_view.o_tshirt_production img {
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}

@@ -1,0 +1,74 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, staging, dev]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options: [production, staging, dev]
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+
+    # Map branch → environment (with manual approval for production)
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine target VM
+        id: target
+        run: |
+          case "${{ github.ref_name }}" in
+            main)    echo "vm=odoo-production" >> $GITHUB_OUTPUT
+                     echo "env=production"     >> $GITHUB_OUTPUT ;;
+            staging) echo "vm=odoo-staging"    >> $GITHUB_OUTPUT
+                     echo "env=staging"        >> $GITHUB_OUTPUT ;;
+            dev)     echo "vm=odoo-dev"        >> $GITHUB_OUTPUT
+                     echo "env=dev"            >> $GITHUB_OUTPUT ;;
+          esac
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Trigger deploy on VM (via IAP SSH)
+        run: |
+          gcloud compute ssh ${{ steps.target.outputs.vm }} \
+            --zone=${{ secrets.GCP_ZONE }} \
+            --tunnel-through-iap \
+            --command="cd /opt/odoo-tshirt-company && sudo bash scripts/deploy.sh ${{ steps.target.outputs.env }}"
+
+      - name: Health check
+        run: |
+          IP=$(gcloud compute instances describe ${{ steps.target.outputs.vm }} \
+            --zone=${{ secrets.GCP_ZONE }} \
+            --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+          echo "Pinging http://${IP}/web/login..."
+          for i in {1..20}; do
+            if curl -fsS "http://${IP}/web/login" >/dev/null; then
+              echo "✓ Healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "✗ Health check failed"
+          exit 1
+
+      - name: Notify status
+        if: always()
+        run: |
+          echo "Deploy to ${{ steps.target.outputs.env }}: ${{ job.status }}"

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!--
+            Lead scoring is computed dynamically in crm_lead.py.
+            This file is a placeholder for future automated rules
+            (e.g., Odoo's built-in crm.lead.scoring.frequency).
+        -->
+    </data>
+</odoo>

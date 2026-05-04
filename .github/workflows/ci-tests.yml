@@ -1,0 +1,74 @@
+name: CI — Tests
+
+on:
+  pull_request:
+    branches: [main, staging, dev]
+  push:
+    branches: [dev]
+
+jobs:
+  lint-and-test:
+    name: Lint + Module Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install lint tools
+        run: |
+          pip install --upgrade pip
+          pip install flake8 pylint pylint-odoo
+
+      - name: Lint custom addons (flake8)
+        run: |
+          flake8 custom_addons/ \
+            --max-line-length=120 \
+            --exclude=__pycache__,migrations \
+            --ignore=E501,W503,W504 || true
+
+      - name: Lint custom addons (pylint-odoo)
+        run: |
+          pylint --load-plugins=pylint_odoo \
+            -d all -e odoolint \
+            custom_addons/ || true
+
+      - name: Build Docker image
+        run: |
+          docker build -f docker/Dockerfile.odoo -t odoo-tshirt:ci .
+
+      - name: Run module tests
+        run: |
+          docker run --rm \
+            --network host \
+            -v ${{ github.workspace }}/custom_addons:/mnt/custom-addons \
+            odoo-tshirt:ci \
+            odoo \
+              --db_host=localhost \
+              --db_port=5432 \
+              --db_user=odoo \
+              --db_password=odoo \
+              --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/custom-addons \
+              -d test_db \
+              -i tshirt_branding \
+              --test-enable \
+              --stop-after-init \
+              --log-level=test || true

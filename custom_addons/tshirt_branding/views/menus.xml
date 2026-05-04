@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_tshirt_root"
+              name="T-Shirt Branding"
+              web_icon="tshirt_branding,static/description/icon.png"
+              sequence="40"/>
+
+    <menuitem id="menu_tshirt_production"
+              name="Production"
+              parent="menu_tshirt_root"
+              action="action_tshirt_production"
+              sequence="10"/>
+
+    <menuitem id="menu_tshirt_dashboard"
+              name="Dashboard"
+              parent="menu_tshirt_root"
+              action="action_tshirt_dashboard"
+              sequence="20"/>
+
+    <menuitem id="menu_tshirt_config"
+              name="Configuration"
+              parent="menu_tshirt_root"
+              sequence="90"
+              groups="tshirt_branding.group_tshirt_manager"/>
+
+    <menuitem id="menu_tshirt_stages"
+              name="Production Stages"
+              parent="menu_tshirt_config"
+              action="action_tshirt_stage"
+              sequence="10"/>
+
+</odoo>

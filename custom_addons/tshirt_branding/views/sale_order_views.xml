@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_sale_order_form_branding" model="ir.ui.view">
+        <field name="name">sale.order.form.branding</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Stat button to view related production orders -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_production_orders" type="object"
+                        class="oe_stat_button" icon="fa-paint-brush"
+                        invisible="production_count == 0">
+                    <field name="production_count" widget="statinfo" string="Production"/>
+                </button>
+            </xpath>
+
+            <!-- Add Branding tab to notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Branding Details" name="branding">
+                    <group>
+                        <group string="Design">
+                            <field name="branding_logo" filename="branding_logo_filename" widget="image"/>
+                            <field name="branding_logo_filename" invisible="1"/>
+                            <field name="branding_placement"/>
+                            <field name="requires_artwork"/>
+                            <field name="requires_new_frame"/>
+                        </group>
+                        <group string="Specs">
+                            <field name="branding_color_specs"/>
+                            <field name="is_b2b" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Special Instructions">
+                        <field name="branding_special_notes" nolabel="1"
+                               placeholder="Any special requests, deadlines, packaging notes..."/>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

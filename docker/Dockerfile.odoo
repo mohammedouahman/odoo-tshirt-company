@@ -1,0 +1,36 @@
+# =============================================================================
+# Custom Odoo 18 image
+# =============================================================================
+# Based on the official Odoo 18 image, adds:
+# - System packages for PDF/image processing & wkhtmltopdf
+# - Python deps for our custom modules
+# - Non-root user for security
+# =============================================================================
+
+FROM odoo:18.0
+
+USER root
+
+# Install build deps for any extra Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        curl \
+        ca-certificates \
+        build-essential \
+        libpq-dev \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install extra Python packages used by custom modules
+COPY docker/requirements.extra.txt /tmp/requirements.extra.txt
+RUN pip install --no-cache-dir --break-system-packages -r /tmp/requirements.extra.txt \
+    || pip install --no-cache-dir -r /tmp/requirements.extra.txt
+
+# Optional: pull community modules at build time via git submodules
+# (configure URLs in docker/community-modules.txt if needed)
+
+USER odoo
+
+# Healthcheck so docker compose knows when Odoo is actually ready
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -fsS http://localhost:8069/web/login || exit 1

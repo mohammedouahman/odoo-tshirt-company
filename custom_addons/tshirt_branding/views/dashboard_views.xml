@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Production Dashboard — pivot/graph view for analytics.
+        Future: replace with custom OWL component for richer dashboards.
+    -->
+
+    <record id="view_tshirt_production_pivot" model="ir.ui.view">
+        <field name="name">tshirt.production.pivot</field>
+        <field name="model">tshirt.production.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Production Analytics">
+                <field name="stage_id" type="row"/>
+                <field name="partner_id" type="row"/>
+                <field name="total_hours" type="measure"/>
+                <field name="quantity" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_tshirt_production_graph" model="ir.ui.view">
+        <field name="name">tshirt.production.graph</field>
+        <field name="model">tshirt.production.order</field>
+        <field name="arch" type="xml">
+            <graph string="Production Volume" type="bar">
+                <field name="stage_id"/>
+                <field name="quantity" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_tshirt_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard</field>
+        <field name="res_model">tshirt.production.order</field>
+        <field name="view_mode">graph,pivot</field>
+    </record>
+
+</odoo>
