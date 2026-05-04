@@ -51,6 +51,7 @@ services:
     expose:
       - "8069"
       - "8072"
+    command: odoo -c /etc/odoo/odoo.conf --db_host=db --db_user=${POSTGRES_USER} --db_password=${POSTGRES_PASSWORD}
 
   mailhog:
     image: mailhog/mailhog:latest
