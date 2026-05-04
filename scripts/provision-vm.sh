@@ -17,9 +17,9 @@ ENV="${1:-}"
 [[ -z "$ENV" ]] && { echo "Usage: $0 <production|staging|dev>"; exit 1; }
 [[ ! "$ENV" =~ ^(production|staging|dev)$ ]] && { echo "Invalid env: $ENV"; exit 1; }
 
-PROJECT_ID="${GCP_PROJECT_ID:-tshirt-odoo-prod}"
+PROJECT_ID="${GCP_PROJECT_ID:-tshirt-odoo-427381}"
 ZONE="${GCP_ZONE:-europe-west1-b}"
-REPO_URL="${REPO_URL:-https://github.com/YOUR_USER/odoo-tshirt-company.git}"
+REPO_URL="${REPO_URL:-https://github.com/mohammedouahman/odoo-tshirt-company.git}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 
 # --- Sizing per environment ---
