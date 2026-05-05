@@ -62,7 +62,7 @@ jobs:
           URL="http://${IP}:${PORT}/web/login"
           echo "Pinging $URL ..."
           for i in {1..30}; do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$URL")
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$URL" || echo 000)
             case "$CODE" in
               200|303) echo "✓ Healthy ($CODE)"; exit 0 ;;
             esac
