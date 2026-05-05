@@ -96,9 +96,9 @@ class TshirtProductionOrder(models.Model):
     # Stage helpers
     # ========================================================================
     @api.model
-    def _read_group_stage_ids(self, stages, domain, order):
+    def _read_group_stage_ids(self, stages, domain, order=None):
         """Show all stages in Kanban even if no records in them."""
-        return stages.search([], order=order)
+        return stages.search([], order=order or 'sequence, id')
 
     def write(self, vals):
         if 'stage_id' in vals:
