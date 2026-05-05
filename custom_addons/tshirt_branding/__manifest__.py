@@ -46,11 +46,11 @@ Designed for a 15-employee company doing ~30 B2B orders/day + B2C web store.
         'data/mail_templates.xml',
 
         # Views
-        'views/menus.xml',
         'views/sale_order_views.xml',
         'views/crm_lead_views.xml',
         'views/production_order_views.xml',
         'views/dashboard_views.xml',
+        'views/menus.xml',
     ],
 
     'assets': {
