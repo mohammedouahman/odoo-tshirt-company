@@ -37,8 +37,8 @@ Designed for a 15-employee company doing ~30 B2B orders/day + B2C web store.
 
     'data': [
         # Security
-        'security/ir.model.access.csv',
         'security/security_groups.xml',
+        'security/ir.model.access.csv',
 
         # Data
         'data/production_stages.xml',
