@@ -1,64 +1,45 @@
 #!/usr/bin/env bash
 # =============================================================================
-# backup.sh
+# Odoo daily backup -> GCS
 # =============================================================================
-# Daily backup of Odoo PostgreSQL DB + filestore → GCS.
-# Runs from cron on production VM.
+# Runs on each VM as root via cron.
+# Reads compose env from /opt/odoo-tshirt-company/.env
 # =============================================================================
-
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+REPO=/opt/odoo-tshirt-company
+ENV_FILE=$REPO/.env
+TS=$(date -u +%Y-%m-%dT%H-%M-%SZ)
 
-# --- Load env ---
-[[ -f .env ]] && set -a && source .env && set +a
+if   docker ps --format '{{.Names}}' | grep -q odoo_db_prod;    then ENV=prod;    DB_C=odoo_db_prod;    APP_C=odoo_app_prod;    DB_NAME=tshirt_prod
+elif docker ps --format '{{.Names}}' | grep -q odoo_db_staging; then ENV=staging; DB_C=odoo_db_staging; APP_C=odoo_app_staging; DB_NAME=tshirt_staging
+elif docker ps --format '{{.Names}}' | grep -q odoo_db_dev;     then ENV=dev;     DB_C=odoo_db_dev;     APP_C=odoo_app_dev;     DB_NAME=tshirt_dev
+else echo "no odoo db container found"; exit 1
+fi
 
-ENV="${ENV:-production}"
-TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
-HOSTNAME=$(hostname)
-BACKUP_DIR="/tmp/odoo-backup-${TIMESTAMP}"
-BUCKET="${GCS_BACKUP_BUCKET:-tshirt-odoo-prod-backups}"
+set -a; source "$ENV_FILE"; set +a
+if [ "$ENV" = dev ]; then POSTGRES_USER=odoo; POSTGRES_PASSWORD=odoo; fi
 
-mkdir -p "$BACKUP_DIR"
-trap "rm -rf $BACKUP_DIR" EXIT
+BUCKET=$(grep '^GCS_BACKUP_BUCKET=' "$ENV_FILE" | cut -d= -f2 || true)
+[ -z "${BUCKET:-}" ] && BUCKET=tshirt-odoo-427381-backups
 
-echo "===== Backup started: $TIMESTAMP ====="
+WORK=$(mktemp -d)
+trap "rm -rf $WORK" EXIT
 
-# --- 1. Get list of databases ---
-DBS=$(docker compose -f docker/docker-compose.${ENV}.yml exec -T db \
-    psql -U "$POSTGRES_USER" -tAc \
-    "SELECT datname FROM pg_database WHERE datistemplate = false AND datname != 'postgres';")
+DUMP=$WORK/${ENV}_${DB_NAME}_${TS}.sql.gz
+FS=$WORK/${ENV}_filestore_${TS}.tar.gz
 
-# --- 2. Dump each DB ---
-for DB in $DBS; do
-    echo "→ Dumping $DB..."
-    docker compose -f docker/docker-compose.${ENV}.yml exec -T db \
-        pg_dump -U "$POSTGRES_USER" -Fc "$DB" \
-        | gzip > "${BACKUP_DIR}/${DB}.dump.gz"
-done
+echo "[$(date -u +%FT%TZ)] dumping $DB_NAME from $DB_C ..."
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$DB_C" \
+    pg_dump -U "$POSTGRES_USER" -d "$DB_NAME" --no-owner --no-acl --format=plain \
+    | gzip -9 > "$DUMP"
 
-# --- 3. Backup filestore ---
-echo "→ Archiving filestore..."
-docker compose -f docker/docker-compose.${ENV}.yml exec -T odoo \
-    tar -czf - -C /var/lib/odoo filestore 2>/dev/null \
-    > "${BACKUP_DIR}/filestore.tar.gz" || echo "  (no filestore yet)"
+echo "[$(date -u +%FT%TZ)] archiving filestore from $APP_C ..."
+docker exec "$APP_C" tar -czf - -C /var/lib/odoo/filestore "$DB_NAME" 2>/dev/null > "$FS" || \
+    echo "  (filestore empty or not yet created — skipping)"
 
-# --- 4. Manifest ---
-cat > "${BACKUP_DIR}/manifest.json" <<EOF
-{
-  "timestamp": "$TIMESTAMP",
-  "hostname": "$HOSTNAME",
-  "env": "$ENV",
-  "databases": [$(echo "$DBS" | sed 's/^/"/;s/$/"/' | paste -sd,)],
-  "odoo_version": "18.0"
-}
-EOF
+echo "[$(date -u +%FT%TZ)] uploading to gs://$BUCKET/$ENV/$TS/ ..."
+gsutil -q cp "$DUMP" "gs://$BUCKET/$ENV/$TS/"
+[ -s "$FS" ] && gsutil -q cp "$FS" "gs://$BUCKET/$ENV/$TS/"
 
-# --- 5. Upload to GCS ---
-echo "→ Uploading to gs://${BUCKET}/${ENV}/${TIMESTAMP}/..."
-gcloud storage cp -r "${BACKUP_DIR}/*" "gs://${BUCKET}/${ENV}/${TIMESTAMP}/"
-
-# --- 6. Report ---
-SIZE=$(du -sh "$BACKUP_DIR" | cut -f1)
-echo "===== Backup complete ($SIZE) ====="
-echo "Location: gs://${BUCKET}/${ENV}/${TIMESTAMP}/"
+echo "[$(date -u +%FT%TZ)] done. Files at gs://$BUCKET/$ENV/$TS/"
