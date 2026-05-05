@@ -57,15 +57,18 @@ jobs:
           IP=$(gcloud compute instances describe ${{ steps.target.outputs.vm }} \
             --zone=${{ secrets.GCP_ZONE }} \
             --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
-          echo "Pinging http://${IP}/web/login..."
-          for i in {1..20}; do
-            if curl -fsS "http://${IP}/web/login" >/dev/null; then
-              echo "✓ Healthy"
-              exit 0
-            fi
+          PORT=80
+          [ "${{ steps.target.outputs.env }}" = "dev" ] && PORT=8069
+          URL="http://${IP}:${PORT}/web/login"
+          echo "Pinging $URL ..."
+          for i in {1..30}; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$URL")
+            case "$CODE" in
+              200|303) echo "✓ Healthy ($CODE)"; exit 0 ;;
+            esac
             sleep 5
           done
-          echo "✗ Health check failed"
+          echo "✗ Health check failed (last code: $CODE)"
           exit 1
 
       - name: Notify status
