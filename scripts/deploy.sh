@@ -1,67 +1,30 @@
 #!/usr/bin/env bash
 # =============================================================================
-# deploy.sh
+# Odoo deploy — runs on the target VM, invoked by GitHub Actions
 # =============================================================================
-# Pulls latest code from git and rebuilds the Odoo container.
-# Called by GitHub Actions on push, or manually via SSH.
-#
-# USAGE:
-#   bash scripts/deploy.sh <env>
+# Usage: sudo bash scripts/deploy.sh <production|staging|dev>
 # =============================================================================
-
 set -euo pipefail
 
-ENV="${1:-}"
-[[ ! "$ENV" =~ ^(production|staging|dev)$ ]] && { echo "Usage: $0 <env>"; exit 1; }
+ENV=${1:?missing env arg: production|staging|dev}
+REPO=/opt/odoo-tshirt-company
+cd "$REPO"
 
-cd /opt/odoo-tshirt-company
-
-echo "===== Deploying $ENV at $(date) ====="
-
-# --- 1. Pull latest code ---
-git fetch --all --prune
 case "$ENV" in
-    production) BRANCH=main ;;
-    staging)    BRANCH=staging ;;
-    dev)        BRANCH=dev ;;
+  production) BRANCH=main;    COMPOSE=docker/docker-compose.production.yml ;;
+  staging)    BRANCH=staging; COMPOSE=docker/docker-compose.staging.yml    ;;
+  dev)        BRANCH=dev;     COMPOSE=docker/docker-compose.dev.yml        ;;
+  *) echo "unknown env: $ENV"; exit 1 ;;
 esac
 
-git checkout "$BRANCH"
+echo "[$(date -u +%FT%TZ)] fetching origin/$BRANCH ..."
+git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-# --- 2. Show what changed ---
-echo "→ Recent commits:"
-git log -5 --oneline
+echo "[$(date -u +%FT%TZ)] building & restarting stack via $COMPOSE ..."
+docker compose -f "$COMPOSE" --project-directory . --env-file .env up -d --build
 
-# --- 3. Rebuild & restart ---
-COMPOSE_FILE="docker/docker-compose.${ENV}.yml"
+echo "[$(date -u +%FT%TZ)] pruning dangling images ..."
+docker image prune -f >/dev/null
 
-echo "→ Building containers..."
-docker compose -f "$COMPOSE_FILE" --env-file .env build
-
-echo "→ Restarting stack..."
-docker compose -f "$COMPOSE_FILE" --env-file .env up -d
-
-# --- 4. Update modules (only on staging/dev — production needs manual approval) ---
-if [[ "$ENV" != "production" ]]; then
-    echo "→ Updating custom modules..."
-    sleep 10
-    docker compose -f "$COMPOSE_FILE" exec -T odoo \
-        odoo --stop-after-init -u tshirt_branding -d tshirt_${ENV} || true
-fi
-
-# --- 5. Health check ---
-echo "→ Waiting for Odoo to be healthy..."
-for i in {1..30}; do
-    if docker compose -f "$COMPOSE_FILE" exec -T odoo \
-        curl -fsS http://localhost:8069/web/login &>/dev/null; then
-        echo "✓ Odoo is up"
-        break
-    fi
-    sleep 5
-done
-
-# --- 6. Cleanup old images ---
-docker image prune -f
-
-echo "===== Deploy complete ====="
+echo "[$(date -u +%FT%TZ)] deploy done."
